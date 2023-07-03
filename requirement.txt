@@ -1,0 +1,6 @@
+openai
+langchain
+chromadb
+pypdf
+unstructured[local-inference]
+gradio
