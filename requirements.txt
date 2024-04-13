@@ -1,0 +1,6 @@
+openai==1.17.1
+langchain-community==0.0.32
+chromadb==0.4.24
+pypdf==4.2.0
+unstructured==0.13.2
+gradio==4.26.0
