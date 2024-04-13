@@ -8,33 +8,49 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 openai_model_name = os.getenv("OPENAI_MODEL_NAME")
 serp_api_key = os.getenv("SERPAPI_API_KEY")
 
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
+from langchain_chroma import Chroma
 
-from langchain.text_splitter import CharacterTextSplitter
+from langchain_text_splitters import CharacterTextSplitter
 from langchain.chains import ConversationalRetrievalChain
 
 # Imports
-from langchain.chat_models import ChatOpenAI
+from langchain_openai.chat_models import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
-from langchain.prompts import (
+from langchain.prompts.chat import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
     ChatPromptTemplate,
 )
-from langchain.vectorstores import Chroma
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
 import gradio as gr
 import time
 
 # Data Ingestion
 from langchain.document_loaders import DirectoryLoader
+from langchain.document_loaders.pdf import PyMuPDFLoader
+from langchain.document_loaders.xml import UnstructuredXMLLoader
+from langchain.document_loaders.csv_loader import CSVLoader
 
-pdf_loader = DirectoryLoader("./data/", glob="**/*.pdf")
-# excel_loader = DirectoryLoader('./data/', glob="**/*.txt")
-# word_loader = DirectoryLoader('./data/', glob="**/*.docx")
-# loaders = [pdf_loader, excel_loader, word_loader]
-loaders = [pdf_loader]
+loaders = {
+    '.pdf': PyMuPDFLoader,
+    '.xml': UnstructuredXMLLoader,
+    '.csv': CSVLoader,
+}
+
+def create_directory_loader(file_type, directory_path):
+    return DirectoryLoader(
+        path=directory_path,
+        glob=f"**/*{file_type}",
+        loader_cls=loaders[file_type],
+    )
+
+# Create DirectoryLoader instances for each file type
+pdf_loader = create_directory_loader('.pdf', 'data/')
+xml_loader = create_directory_loader('.xml', 'data/')
+csv_loader = create_directory_loader('.csv', 'data/')
+
+loaders = [pdf_loader, xml_loader, csv_loader]
 documents = []
 for loader in loaders:
     documents.extend(loader.load())
@@ -48,14 +64,13 @@ vectorstore = Chroma.from_documents(
     documents,
     embeddings,
     collection_name="my_documents",
-    persist_directory=".chromadb/",
-    embedding_function=embeddings,
+    persist_directory=".chromadb/"
 )
 
 chat_history = []
 
-general_system_template = r""" 
-Given a specific context and chat history, please give a concise and helpful response. 
+general_system_template = r"""
+Given a specific context and chat history, please give a concise and helpful response.
 ----
 Context:
 {context}
